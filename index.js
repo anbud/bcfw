@@ -7,7 +7,6 @@ const createStateMachine = require('./lib/stateMachine')
 
 const { randomBytes, createHash } = require('crypto')
 const fs = require('fs-extra')
-const getPort = require('get-port')
 const DJSON = require('deterministic-json')
 const level = require('level')
 const merk = require('merk')
@@ -15,6 +14,12 @@ const merk = require('merk')
 class BCFW {
     constructor(config) {
         this.application = createStateMachine(config)
+
+        this.ports = {
+            abci: config.abciPort,
+            p2p: config.p2pPort,
+            rpc: config.rpcPort,
+        }
 
         this.log = config.log
         this.initialState = config.initialState
@@ -26,14 +31,6 @@ class BCFW {
         this.setHome()
 
         Object.assign(this, this.application)
-    }
-
-    async assignPorts() {
-        this.ports = {
-            abci: this.config.abciPort || (await getPort()),
-            p2p: this.config.p2pPort || (await getPort()),
-            rpc: this.config.rpcPort || (await getPort()),
-        }
     }
 
     setGCI() {
@@ -57,23 +54,24 @@ class BCFW {
         }
 
         let genesisJSON = fs.readFileSync(this.genesis, 'utf8')
+
         this.genesis = DJSON.stringify(JSON.parse(genesisJSON))
     }
 
     setHome() {
-        if (this.config.genesis && this.config.privateKey) {
+        if (this.genesis && this.privateKey) {
             this.home = join(
                 this.appHome,
                 createHash('sha256')
-                    .update(fs.readFileSync(this.config.genesis))
-                    .update(fs.readFileSync(this.config.privateKey))
+                    .update(fs.readFileSync(this.genesis))
+                    .update(fs.readFileSync(this.privateKey))
                     .digest('hex')
             )
-        } else if (this.config.genesis && !this.config.privateKey) {
+        } else if (this.genesis && !this.privateKey) {
             this.home = join(
                 this.appHome,
                 createHash('sha256')
-                    .update(fs.readFileSync(this.config.genesis))
+                    .update(fs.readFileSync(this.genesis))
                     .digest('hex')
             )
         } else {
@@ -82,7 +80,6 @@ class BCFW {
     }
 
     async start() {
-        await this.assignPorts()
         await fs.mkdirp(this.home)
 
         this.db = level(join(this.home, 'state.db'))
