@@ -76,7 +76,7 @@ class BCFW {
         )
         this.abciServer.listen(this.ports.abci)
 
-        this.tendermintProcess = await createTendermintProcess({
+        this.tendermintProcess = await initTendermint({
             home: this.home,
             ports: this.ports,
             privateKey: this.privateKey,
@@ -89,11 +89,11 @@ class BCFW {
     }
 }
 
+let app = new BCFW(config)
+
+app.start()
+
 const middleware = async config => {
-    let app = new BCFW(config)
-
-    await app.start()
-
     return (req, res, next) => {
         console.log(req)
 
