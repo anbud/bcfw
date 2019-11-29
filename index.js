@@ -29,15 +29,6 @@ class BCFW {
         Object.assign(this, this.application)
     }
 
-    getAppInfo() {
-        return {
-            ports: this.ports,
-            GCI: this.GCI,
-            genesis: this.genesis,
-            home: this.home,
-        }
-    }
-
     setGenesis() {
         if (!this.genesis) {
             this.genesis = join(this.home, 'config', 'genesis.json')
@@ -45,7 +36,7 @@ class BCFW {
 
         let genesisJSON = fs.readFileSync(this.genesis, 'utf8')
 
-        this.genesis = DJSON.stringify(JSON.parse(genesisJSON))
+        this.genesisValue = DJSON.stringify(JSON.parse(genesisJSON))
     }
 
     setHome() {
@@ -95,16 +86,13 @@ class BCFW {
         })
 
         this.setGenesis()
-
-        return this.getAppInfo()
     }
 }
 
-let App = config => new BCFW(config)
+const middleware = async config => {
+    let app = new BCFW(config)
 
-const middleware = config => {
-    let app = App(config)
-    console.log(app)
+    await app.start()
 
     return (req, res, next) => {
         console.log(req)
