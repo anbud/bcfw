@@ -1,5 +1,5 @@
-import { join } from 'path'
-import { homedir } from 'os'
+const { join } = require('path')
+const { homedir } = require('os')
 
 const createABCIServer = require('./lib/abci')
 const { initTendermint } = require('./lib/tendermint')
@@ -15,28 +15,18 @@ class BCFW {
     constructor(config) {
         this.application = createStateMachine(config)
 
-        this.ports = {
-            abci: config.abciPort,
-            p2p: config.p2pPort,
-            rpc: config.rpcPort,
-        }
+        this.ports = config.ports
 
-        this.log = config.log
+        this.log = config.log || false
         this.initialState = config.initialState
         this.privateKey = config.privateKey
         this.genesis = config.genesis
-        this.peers = config.peers
+        this.peers = config.peers || []
         this.appHome = join(homedir(), '.bcfw', 'networks')
 
         this.setHome()
 
         Object.assign(this, this.application)
-    }
-
-    setGCI() {
-        this.GCI = createHash('sha256')
-            .update(this.genesis)
-            .digest('hex')
     }
 
     getAppInfo() {
@@ -105,35 +95,22 @@ class BCFW {
         })
 
         this.setGenesis()
-        this.setGCI()
 
-        let appInfo = this.getAppInfo()
-
-        return appInfo
+        return this.getAppInfo()
     }
 }
 
 let App = config => new BCFW(config)
 
-const wrapper = obj => {
-    let callback = null
-
-    if (typeof obj === 'function') {
-        callback = obj
-    } else {
-        callback = (req, cb) => {
-            cb(null, obj)
-        }
-    }
+const middleware = config => {
+    let app = App(config)
+    console.log(app)
 
     return (req, res, next) => {
-        callback(req, (err, options) => {
-            if (err) {
-                next(err)
-            } else {
-            }
-        })
+        console.log(req)
+
+        next()
     }
 }
 
-module.exports = wrapper
+module.exports = middleware
